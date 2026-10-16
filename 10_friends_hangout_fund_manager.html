@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour 28 - Hangout & Expense Manager</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        offwhite: '#F9F9F6',
+                        cardbg: '#FFFFFF',
+                        bordercolor: '#E5E5E0',
+                        branddark: '#1E2022',
+                        accent: '#2B2D42',
+                        primary: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F3F3EE;
+            color: #2B2D42;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #EFEFEA;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D1D1C7;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #B0B0A4;
+        }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col justify-between selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- Header / Branding Navigation -->
+    <header class="bg-[#FAF9F5] border-b border-[#E3E3DC] sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-3">
+            
+            <!-- Logo Section -->
+            <div class="flex items-center space-x-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-200">
+                    <i class="fa-solid fa-compass text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-2xl font-black text-slate-800 tracking-tight">Tour</span>
+                        <span class="text-2xl font-black text-emerald-600 tracking-tight bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-200">28</span>
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500">Group Expense & Outing Manager</p>
+                </div>
+            </div>
+
+            <!-- Role / User Controls -->
+            <div class="flex items-center gap-2.5">
+                <!-- Status Badge -->
+                <div id="roleBadge" class="text-xs font-semibold px-3 py-1.5 rounded-xl border bg-slate-100 border-slate-200 text-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-user text-slate-500"></i> Member Mode
+                </div>
+
+                <!-- Login / Logout Actions -->
+                <button id="authBtn" onclick="openAuthModal()" class="px-3.5 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-lock text-emerald-400"></i> Staff Login
+                </button>
+
+                <!-- Reset App State -->
+                <button onclick="resetSystemData()" class="px-2.5 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-xl transition" title="Reset All Data">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-6">
+
+        <!-- Banner for Pending Cashier Items (Admin Alert) -->
+        <div id="pendingApprovalAlert" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-bold text-amber-900">Pending Cashier Entries Awaiting Admin Approval</h4>
+                    <p class="text-[11px] text-amber-700">Cashier submitted money transactions that require your review to reflect in overall balances.</p>
+                </div>
+            </div>
+            <button onclick="openApprovalModal()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap">
+                Review Pending Items (<span id="pendingCount">0</span>)
+            </button>
+        </div>
+
+        <!-- Metric Summary Cards (Visible to ALL: Member, Cashier, Admin) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Fund Collected</p>
+                    <h3 id="statTotalRaised" class="text-2xl font-black text-emerald-600 mt-0.5">৳ 0</h3>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100">
+                    <i class="fa-solid fa-piggy-bank text-xl"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Approved Total Expense</p>
+                    <h3 id="statTotalSpent" class="text-2xl font-black text-rose-600 mt-0.5">৳ 0</h3>
+                </div>
+                <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-100">
+                    <i class="fa-solid fa-receipt text-xl"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Available Vault Balance</p>
+                    <h3 id="statBalance" class="text-2xl font-black text-blue-600 mt-0.5">৳ 0</h3>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100">
+                    <i class="fa-solid fa-vault text-xl"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cost Per Member</p>
+                    <h3 id="statPerPerson" class="text-2xl font-black text-indigo-600 mt-0.5">৳ 0</h3>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center border border-indigo-100">
+                    <i class="fa-solid fa-calculator text-xl"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Money Related Section (HIDDEN for Members, visible ONLY to Cashier and Admin) -->
+        <section id="financeSection" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- COLUMN 1: Deposit Management (Cashier Input) -->
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                        <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-wallet text-emerald-500"></i> 1. Cashier Deposit Collection
+                        </h2>
+                        <button id="addMemberBtn" onclick="openAddMemberModal()" class="hidden text-xs text-emerald-600 hover:text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2.5 py-1 rounded-lg transition">
+                            <i class="fa-solid fa-user-plus"></i> Edit Members
+                        </button>
+                    </div>
+
+                    <!-- Deposit Form -->
+                    <div class="bg-[#FAF9F5] p-3.5 rounded-xl border border-[#E3E3DC] mb-4 space-y-3">
+                        <div class="grid grid-cols-1 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Select Member</label>
+                                <select id="depositMemberSelect" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <!-- Dynamic Options -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Deposit Amount (৳)</label>
+                                <div class="flex gap-2">
+                                    <input type="number" id="depositAmountInput" placeholder="e.g. 500" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+                                    <button onclick="handleDepositSubmit()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap">
+                                        Submit Collection
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Member Deposit Status -->
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Members Paid Record</h3>
+                        <span id="memberCountBadge" class="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">0 Members</span>
+                    </div>
+
+                    <div id="membersDepositList" class="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                        <!-- Dynamic member cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: Expense Tracking (Cashier Input) -->
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <div class="border-b border-slate-100 pb-3 mb-4">
+                        <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-cart-shopping text-rose-500"></i> 2. Cashier Expense Entry
+                        </h2>
+                    </div>
+
+                    <!-- Expense Entry Form -->
+                    <form onsubmit="handleExpenseSubmit(event)" class="bg-[#FAF9F5] p-3.5 rounded-xl border border-[#E3E3DC] mb-4 space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Expense Item Name</label>
+                            <input type="text" id="expenseTitleInput" placeholder="e.g. Food Bill, Transport" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-rose-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Amount (৳)</label>
+                            <input type="number" id="expenseAmountInput" placeholder="e.g. 1200" required class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-rose-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 rounded-xl text-xs transition shadow-sm">
+                            Submit Expense
+                        </button>
+                    </form>
+
+                    <!-- Approved Expense List -->
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Approved Expenses List</h3>
+                    <div id="expenseHistoryList" class="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                        <!-- Approved Expenses -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 3: Admin Settlement Overview -->
+            <div class="bg-white p-5 rounded-2xl border border-[#E3E3DC] shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <div class="border-b border-slate-100 pb-3 mb-4">
+                        <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-indigo-500"></i> 3. Member Detailed Settlements
+                        </h2>
+                    </div>
+
+                    <p class="text-xs text-slate-500 mb-3 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
+                        Net balances calculated from approved contributions, actual expenses, and missed-vote penalties:
+                    </p>
+
+                    <div id="settlementList" class="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                        <!-- Dynamic Settlement Cards -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- MEMBER SECTION: Outing Plans Table (Visible to ALL) -->
+        <section class="bg-white p-6 rounded-2xl border border-[#E3E3DC] shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-teal-600"></i> Outing Plans & Destinations
+                    </h2>
+                    <p class="text-xs text-slate-500">Proposed tour locations, budget per person, and schedules.</p>
+                </div>
+                <button id="addPlanBtn" onclick="openPlanModal()" class="hidden bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5 self-start sm:self-auto">
+                    <i class="fa-solid fa-plus"></i> Add New Plan (Admin)
+                </button>
+            </div>
+
+            <!-- Plans Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-[#FAF9F5] text-slate-600 font-bold uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4"><i class="fa-solid fa-location-dot mr-1"></i> Location</th>
+                            <th class="py-3 px-4"><i class="fa-solid fa-layer-group mr-1"></i> Category</th>
+                            <th class="py-3 px-4"><i class="fa-solid fa-money-bill-wave mr-1"></i> Est. Cost / Person</th>
+                            <th class="py-3 px-4"><i class="fa-solid fa-calendar-day mr-1"></i> Proposed Date</th>
+                            <th class="py-3 px-4"><i class="fa-solid fa-user mr-1"></i> Proposed By</th>
+                            <th class="py-3 px-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plansTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <!-- Dynamic Plans Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- MEMBER SECTION: Voting Polls (Visible to ALL Members) -->
+        <section class="bg-white p-6 rounded-2xl border border-[#E3E3DC] shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-1.5">
+                            <i class="fa-solid fa-check-to-slot text-amber-500"></i> Member Voting & Destination Polls
+                        </h2>
+                        <span class="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-full border border-rose-200">
+                            24h Deadline
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Cast your vote for preferred outings within 24 hours. Missing a vote incurs a <strong>৳10 penalty fee</strong>!
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="adminPenaltyBtn" onclick="runVotingDeadlineCheck()" class="hidden bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 px-3 py-2 rounded-xl text-xs font-bold transition">
+                        <i class="fa-solid fa-gavel"></i> Apply ৳10 Penalty Rule
+                    </button>
+                    <button id="createPollBtn" onclick="openPollModal()" class="hidden bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-square-plus"></i> Create Poll (Admin)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Polls List -->
+            <div id="pollsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Poll Items Rendered Dynamically -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#FAF9F5] border-t border-[#E3E3DC] py-4 text-center text-xs text-slate-500 mt-8">
+        <p class="font-semibold">&copy; 2026 Tour 28 Group Manager • Secure Financials & Member Voting System</p>
+    </footer>
+
+    <!-- MODAL 1: Authentication Modal (Admin / Cashier) -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 border border-[#E3E3DC] shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-shield-halved text-emerald-600 mr-1.5"></i> Staff Login</h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Select Staff Role</label>
+                    <select id="authRoleSelect" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <option value="cashier">Cashier (Pass: 700250)</option>
+                        <option value="admin">Admin (Pass: 250700)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Enter Security Pin / Passcode</label>
+                    <input type="password" id="authPasscode" placeholder="••••••" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <p id="authErrorMsg" class="text-xs text-rose-600 font-semibold hidden"></p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeAuthModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+                    Cancel
+                </button>
+                <button onclick="handleLogin()" class="px-4 py-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-xl shadow-sm">
+                    Authenticate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Add / Manage Members Modal -->
+    <div id="addMemberModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E3E3DC] shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-users-gear text-emerald-600 mr-1.5"></i> Manage Group Members</h3>
+                <button onclick="closeAddMemberModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Form to Add New Member -->
+            <div class="flex gap-2">
+                <input type="text" id="newMemberNameInput" placeholder="Enter Member Name..." class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+                <button onclick="addNewMember()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap">
+                    <i class="fa-solid fa-plus"></i> Add
+                </button>
+            </div>
+
+            <!-- Member Roster -->
+            <div class="space-y-1.5">
+                <label class="block text-[11px] font-bold uppercase text-slate-400">Current Members Roster</label>
+                <div id="membersRosterList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Dynamic member editable inputs -->
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closeAddMemberModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+                    Close
+                </button>
+                <button onclick="saveRosterChanges()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Submit Outing Plan Modal -->
+    <div id="planModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E3E3DC] shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-map-location-dot text-teal-600 mr-1.5"></i> Submit New Outing Plan</h3>
+                <button onclick="closePlanModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handlePlanSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Proposed Location</label>
+                    <input type="text" id="planLocation" placeholder="e.g. Cox's Bazar / Dhanmondi Lake" required class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Category</label>
+                    <select id="planCategory" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="Food Related">Food Related</option>
+                        <option value="Tour / Outing">Tour / Outing</option>
+                        <option value="Both (Tour & Food)">Both (Tour & Food)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Total Cost / Person (৳)</label>
+                        <input type="number" id="planCost" placeholder="e.g. 1500" required class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Target Date</label>
+                        <input type="date" id="planDate" required class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Proposer Name</label>
+                    <select id="planProposer" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-teal-500 outline-none">
+                        <!-- Dynamic member options -->
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closePlanModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm">
+                        Submit Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Poll Creation Modal -->
+    <div id="pollModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E3E3DC] shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-square-plus text-amber-500 mr-1.5"></i> Create Destination Poll</h3>
+                <button onclick="closePollModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">Poll Title / Destination Name</label>
+                    <input type="text" id="pollTitleInput" placeholder="e.g. Old Dhaka Biryani Trip" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="closePollModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+                    Cancel
+                </button>
+                <button onclick="createPollOption()" class="px-4 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-sm">
+                    Publish Poll
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Admin Approval Queue Modal -->
+    <div id="approvalModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 border border-[#E3E3DC] shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 text-base"><i class="fa-solid fa-clipboard-check text-amber-500 mr-1.5"></i> Pending Cashier Approvals</h3>
+                <button onclick="closeApprovalModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="approvalQueueContainer" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <!-- Pending Queue Items -->
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button onclick="closeApprovalModal()" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // System Default Members (10 Initial Members)
+        const DEFAULT_MEMBERS = [
+            { id: 1, name: "Rahim", paid: 0, penalty: 0 },
+            { id: 2, name: "Karim", paid: 0, penalty: 0 },
+            { id: 3, name: "Sakib", paid: 0, penalty: 0 },
+            { id: 4, name: "Tanvir", paid: 0, penalty: 0 },
+            { id: 5, name: "Fahim", paid: 0, penalty: 0 },
+            { id: 6, name: "Asif", paid: 0, penalty: 0 },
+            { id: 7, name: "Mehedi", paid: 0, penalty: 0 },
+            { id: 8, name: "Nabil", paid: 0, penalty: 0 },
+            { id: 9, name: "Rafid", paid: 0, penalty: 0 },
+            { id: 10, name: "Hasan", paid: 0, penalty: 0 }
+        ];
+
+        const DEFAULT_PLANS = [
+            { id: 101, location: "Dhanmondi Lake & BFC", category: "Both (Tour & Food)", costPerPerson: 450, date: "2026-11-05", proposer: "Sakib" },
+            { id: 102, location: "Old Dhaka Biryani Trip", category: "Food Related", costPerPerson: 650, date: "2026-11-12", proposer: "Rahim" }
+        ];
+
+        const DEFAULT_POLLS = [
+            { 
+                id: 201, 
+                title: "Dhanmondi Lake Outing", 
+                createdAt: Date.now(), 
+                votes: [1, 2, 3] 
+            },
+            { 
+                id: 202, 
+                title: "Old Dhaka Feast", 
+                createdAt: Date.now() - 3600000 * 5, 
+                votes: [4, 5] 
+            }
+        ];
+
+        // Application State
+        let members = JSON.parse(localStorage.getItem('tour28_members')) || DEFAULT_MEMBERS;
+        let approvedExpenses = JSON.parse(localStorage.getItem('tour28_approved_expenses')) || [];
+        let plans = JSON.parse(localStorage.getItem('tour28_plans')) || DEFAULT_PLANS;
+        let polls = JSON.parse(localStorage.getItem('tour28_polls')) || DEFAULT_POLLS;
+        let pendingQueue = JSON.parse(localStorage.getItem('tour28_pending_queue')) || [];
+
+        // Auth State: 'member', 'cashier', or 'admin'
+        let currentRole = 'member'; 
+
+        // State Save Function
+        function saveSystemState() {
+            localStorage.setItem('tour28_members', JSON.stringify(members));
+            localStorage.setItem('tour28_approved_expenses', JSON.stringify(approvedExpenses));
+            localStorage.setItem('tour28_plans', JSON.stringify(plans));
+            localStorage.setItem('tour28_polls', JSON.stringify(polls));
+            localStorage.setItem('tour28_pending_queue', JSON.stringify(pendingQueue));
+            renderApp();
+        }
+
+        // Render Application Interface
+        function renderApp() {
+            // Update Role Badge and UI Visibility
+            const roleBadge = document.getElementById('roleBadge');
+            const authBtn = document.getElementById('authBtn');
+            const financeSection = document.getElementById('financeSection');
+            const adminPenaltyBtn = document.getElementById('adminPenaltyBtn');
+            const createPollBtn = document.getElementById('createPollBtn');
+            const addPlanBtn = document.getElementById('addPlanBtn');
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            const pendingAlert = document.getElementById('pendingApprovalAlert');
+            const pendingCount = document.getElementById('pendingCount');
+
+            if (currentRole === 'admin') {
+                roleBadge.className = "text-xs font-bold px-3 py-1.5 rounded-xl border bg-emerald-100 border-emerald-300 text-emerald-800 flex items-center gap-1.5";
+                roleBadge.innerHTML = `<i class="fa-solid fa-user-shield text-emerald-600"></i> Admin Mode`;
+                authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
+                
+                financeSection.classList.remove('hidden');
+                adminPenaltyBtn.classList.remove('hidden');
+                createPollBtn.classList.remove('hidden');
+                addPlanBtn.classList.remove('hidden');
+                addMemberBtn.classList.remove('hidden');
+            } else if (currentRole === 'cashier') {
+                roleBadge.className = "text-xs font-bold px-3 py-1.5 rounded-xl border bg-blue-100 border-blue-300 text-blue-800 flex items-center gap-1.5";
+                roleBadge.innerHTML = `<i class="fa-solid fa-cash-register text-blue-600"></i> Cashier Mode`;
+                authBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket"></i> Logout`;
+
+                financeSection.classList.remove('hidden');
+                adminPenaltyBtn.classList.add('hidden');
+                createPollBtn.classList.add('hidden');
+                addPlanBtn.classList.add('hidden');
+                addMemberBtn.classList.add('hidden');
+            } else {
+                // Default MEMBER MODE: Completely hide financial inputs/details
+                roleBadge.className = "text-xs font-semibold px-3 py-1.5 rounded-xl border bg-slate-100 border-slate-200 text-slate-700 flex items-center gap-1.5";
+                roleBadge.innerHTML = `<i class="fa-solid fa-user text-slate-500"></i> Member Mode`;
+                authBtn.innerHTML = `<i class="fa-solid fa-lock text-emerald-400"></i> Staff Login`;
+
+                financeSection.classList.add('hidden');
+                adminPenaltyBtn.classList.add('hidden');
+                createPollBtn.classList.add('hidden');
+                addPlanBtn.classList.add('hidden');
+                addMemberBtn.classList.add('hidden');
+            }
+
+            // Pending alert box for Admin
+            if (pendingQueue.length > 0 && currentRole === 'admin') {
+                pendingCount.innerText = pendingQueue.length;
+                pendingAlert.classList.remove('hidden');
+            } else {
+                pendingAlert.classList.add('hidden');
+            }
+
+            // Financial Calculations (Calculated from approved items)
+            const totalRaised = members.reduce((sum, m) => sum + m.paid, 0);
+            const totalSpent = approvedExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const balance = totalRaised - totalSpent;
+            const perPersonCost = members.length > 0 ? (totalSpent / members.length) : 0;
+
+            document.getElementById('statTotalRaised').innerText = `৳ ${totalRaised.toLocaleString('en-US')}`;
+            document.getElementById('statTotalSpent').innerText = `৳ ${totalSpent.toLocaleString('en-US')}`;
+            document.getElementById('statBalance').innerText = `৳ ${balance.toLocaleString('en-US')}`;
+            document.getElementById('statPerPerson').innerText = `৳ ${Math.round(perPersonCost).toLocaleString('en-US')}`;
+            document.getElementById('memberCountBadge').innerText = `${members.length} Members`;
+
+            // Dropdown Population
+            const depositSelect = document.getElementById('depositMemberSelect');
+            const proposerSelect = document.getElementById('planProposer');
+            
+            depositSelect.innerHTML = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+            proposerSelect.innerHTML = members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+
+            // Render Member Collection List (For Cashier/Admin view)
+            const memberListEl = document.getElementById('membersDepositList');
+            memberListEl.innerHTML = members.map(m => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-[#FAF9F5]">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                            ${m.name.charAt(0)}
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-700 block">${m.name}</span>
+                            ${m.penalty > 0 ? `<span class="text-[10px] text-rose-600 font-semibold">+৳${m.penalty} Penalty</span>` : ''}
+                        </div>
+                    </div>
+                    <span class="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                        ৳ ${m.paid}
+                    </span>
+                </div>
+            `).join('');
+
+            // Render Approved Expenses History
+            const expenseListEl = document.getElementById('expenseHistoryList');
+            if (approvedExpenses.length === 0) {
+                expenseListEl.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No approved expenses recorded yet.</p>`;
+            } else {
+                expenseListEl.innerHTML = approvedExpenses.map((e, index) => `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-[#FAF9F5]">
+                        <div class="truncate mr-2">
+                            <p class="text-xs font-bold text-slate-800 truncate">${e.title}</p>
+                            <span class="text-[10px] text-slate-400">Date: ${e.date}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100">
+                                ৳ ${e.amount}
+                            </span>
+                            ${currentRole === 'admin' ? `
+                                <button onclick="deleteExpense(${index})" class="text-slate-300 hover:text-rose-600 text-xs px-1">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Individual Settlement List
+            const settlementListEl = document.getElementById('settlementList');
+            settlementListEl.innerHTML = members.map(m => {
+                const totalOwedCost = perPersonCost + (m.penalty || 0);
+                const netBalance = m.paid - totalOwedCost;
+                const isPositive = netBalance >= 0;
+                const roundedAmount = Math.abs(Math.round(netBalance)).toLocaleString('en-US');
+
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-[#FAF9F5]">
+                        <div>
+                            <span class="text-xs font-bold text-slate-700 block">${m.name}</span>
+                            <span class="text-[10px] text-slate-400">Paid: ৳${m.paid} | Required: ৳${Math.round(totalOwedCost)}</span>
+                        </div>
+                        <div>
+                            ${isPositive ? 
+                                `<span class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg inline-block">
+                                    Refund: ৳ ${roundedAmount}
+                                 </span>` : 
+                                `<span class="text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg inline-block">
+                                    Dues: ৳ ${roundedAmount}
+                                 </span>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Plans Table
+            const plansTbody = document.getElementById('plansTableBody');
+            if (plans.length === 0) {
+                plansTbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No outing plans submitted yet.</td></tr>`;
+            } else {
+                plansTbody.innerHTML = plans.map((p, index) => `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3 px-4 font-bold text-slate-800">${p.location}</td>
+                        <td class="py-3 px-4">
+                            <span class="bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+                                ${p.category}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-teal-600">৳ ${p.costPerPerson}</td>
+                        <td class="py-3 px-4">${p.date}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-600">${p.proposer}</td>
+                        <td class="py-3 px-4 text-center">
+                            ${currentRole === 'admin' ? `
+                                <button onclick="deletePlan(${index})" class="text-slate-300 hover:text-rose-600 text-xs">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : '<span class="text-slate-300 text-[10px]">-</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Render Member Voting Poll System
+            const pollsEl = document.getElementById('pollsContainer');
+            if (polls.length === 0) {
+                pollsEl.innerHTML = `<p class="text-xs text-slate-400 col-span-full py-6 text-center">No active polls right now.</p>`;
+            } else {
+                const totalMembersCount = members.length;
+                pollsEl.innerHTML = polls.map((poll, pollIdx) => {
+                    const voteCount = poll.votes ? poll.votes.length : 0;
+                    const percent = totalMembersCount > 0 ? Math.round((voteCount / totalMembersCount) * 100) : 0;
+                    
+                    const timeElapsed = Date.now() - poll.createdAt;
+                    const hoursLeft = Math.max(0, 24 - Math.floor(timeElapsed / (1000 * 60 * 60)));
+                    const isExpired = hoursLeft === 0;
+
+                    return `
+                        <div class="bg-[#FAF9F5] p-4 rounded-2xl border border-[#E3E3DC] space-y-3 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-2 gap-2">
+                                    <h4 class="text-xs font-bold text-slate-800 leading-snug">${poll.title}</h4>
+                                    <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 shrink-0">
+                                        ${voteCount} Votes
+                                    </span>
+                                </div>
+
+                                <div class="mb-2">
+                                    ${isExpired ? 
+                                        `<span class="text-[10px] bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-clock"></i> Expired (Penalty Eligible)</span>` : 
+                                        `<span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-hourglass-half"></i> ${hoursLeft}h Left to Vote</span>`
+                                    }
+                                </div>
+
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div class="bg-amber-500 h-2 rounded-full transition-all duration-300" style="width: ${percent}%"></div>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 border-t border-slate-200/60 space-y-2">
+                                <div class="flex gap-1.5">
+                                    <select id="voterSelect_${pollIdx}" class="w-full bg-white border border-slate-300 rounded-lg text-[11px] px-2 py-1 focus:ring-1 focus:ring-amber-500 outline-none">
+                                        <option value="">Select your name to vote...</option>
+                                        ${members.map(m => `<option value="${m.id}">${m.name} ${poll.votes && poll.votes.includes(m.id) ? '✓' : ''}</option>`).join('')}
+                                    </select>
+                                    <button onclick="castVote(${pollIdx})" ${isExpired ? 'disabled' : ''} class="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold px-3 py-1 rounded-lg text-xs transition whitespace-nowrap">
+                                        Vote
+                                    </button>
+                                </div>
+
+                                ${currentRole === 'admin' ? `
+                                    <div class="flex justify-end">
+                                        <button onclick="deletePoll(${pollIdx})" class="text-slate-300 hover:text-rose-600 text-xs">
+                                            <i class="fa-solid fa-trash-can"></i> Delete Poll
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Auth Logic
+        function openAuthModal() {
+            if (currentRole !== 'member') {
+                currentRole = 'member';
+                saveSystemState();
+                return;
+            }
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('authPasscode').value = '';
+            document.getElementById('authErrorMsg').classList.add('hidden');
+        }
+
+        function handleLogin() {
+            const role = document.getElementById('authRoleSelect').value;
+            const pass = document.getElementById('authPasscode').value.trim();
+            const errorEl = document.getElementById('authErrorMsg');
+
+            if (role === 'admin' && pass === '250700') {
+                currentRole = 'admin';
+                closeAuthModal();
+                saveSystemState();
+            } else if (role === 'cashier' && pass === '700250') {
+                currentRole = 'cashier';
+                closeAuthModal();
+                saveSystemState();
+            } else {
+                errorEl.innerText = "Invalid Passcode!";
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        // Financial Handlers (Cashier Submits -> Enters Admin Queue)
+        function handleDepositSubmit() {
+            if (currentRole !== 'cashier' && currentRole !== 'admin') {
+                alert("Only Cashier or Admin can record collections!");
+                return;
+            }
+
+            const memberId = parseInt(document.getElementById('depositMemberSelect').value);
+            const amountInput = document.getElementById('depositAmountInput');
+            const amount = parseFloat(amountInput.value);
+
+            if (isNaN(amount) || amount <= 0) return;
+
+            const member = members.find(m => m.id === memberId);
+
+            if (currentRole === 'cashier') {
+                pendingQueue.push({
+                    id: Date.now(),
+                    type: 'deposit',
+                    memberId: memberId,
+                    memberName: member ? member.name : '',
+                    amount: amount,
+                    date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+                alert("Deposit submitted to Admin queue for final approval!");
+            } else if (currentRole === 'admin') {
+                if (member) member.paid += amount;
+            }
+
+            amountInput.value = '';
+            saveSystemState();
+        }
+
+        function handleExpenseSubmit(e) {
+            e.preventDefault();
+            if (currentRole !== 'cashier' && currentRole !== 'admin') {
+                alert("Only Cashier or Admin can record expenses!");
+                return;
+            }
+
+            const titleInput = document.getElementById('expenseTitleInput');
+            const amountInput = document.getElementById('expenseAmountInput');
+
+            const title = titleInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if (title && !isNaN(amount) && amount > 0) {
+                const date = new Date().toLocaleDateString();
+                if (currentRole === 'cashier') {
+                    pendingQueue.push({
+                        id: Date.now(),
+                        type: 'expense',
+                        title: title,
+                        amount: amount,
+                        date: date
+                    });
+                    alert("Expense submitted to Admin queue for final approval!");
+                } else if (currentRole === 'admin') {
+                    approvedExpenses.unshift({ title, amount, date });
+                }
+
+                titleInput.value = '';
+                amountInput.value = '';
+                saveSystemState();
+            }
+        }
+
+        function deleteExpense(index) {
+            if (currentRole !== 'admin') return;
+            approvedExpenses.splice(index, 1);
+            saveSystemState();
+        }
+
+        // Admin Queue Approval Modal Operations
+        function openApprovalModal() {
+            const container = document.getElementById('approvalQueueContainer');
+            if (pendingQueue.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No pending cashier requests.</p>`;
+            } else {
+                container.innerHTML = pendingQueue.map((item, idx) => `
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-amber-200 bg-amber-50/50">
+                        <div>
+                            <span class="text-xs font-bold text-amber-900 block">
+                                ${item.type === 'deposit' ? `Deposit: ${item.memberName}` : `Expense: ${item.title}`}
+                            </span>
+                            <span class="text-[10px] text-amber-700">Amount: ৳${item.amount} | ${item.date}</span>
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button onclick="approveQueueItem(${idx})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold">
+                                Approve
+                            </button>
+                            <button onclick="rejectQueueItem(${idx})" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('approvalModal').classList.remove('hidden');
+        }
+
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.add('hidden');
+        }
+
+        function approveQueueItem(idx) {
+            const item = pendingQueue[idx];
+            if (item.type === 'deposit') {
+                const member = members.find(m => m.id === item.memberId);
+                if (member) member.paid += item.amount;
+            } else if (item.type === 'expense') {
+                approvedExpenses.unshift({ title: item.title, amount: item.amount, date: item.date });
+            }
+            pendingQueue.splice(idx, 1);
+            saveSystemState();
+            openApprovalModal();
+        }
+
+        function rejectQueueItem(idx) {
+            pendingQueue.splice(idx, 1);
+            saveSystemState();
+            openApprovalModal();
+        }
+
+        // Member Roster Modal
+        function openAddMemberModal() {
+            renderRosterList();
+            document.getElementById('addMemberModal').classList.remove('hidden');
+        }
+
+        function closeAddMemberModal() {
+            document.getElementById('addMemberModal').classList.add('hidden');
+        }
+
+        function renderRosterList() {
+            const list = document.getElementById('membersRosterList');
+            list.innerHTML = members.map((m, i) => `
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-400 w-5">${i + 1}.</span>
+                    <input type="text" id="rosterMemberInput_${m.id}" value="${m.name}" class="w-full bg-[#FAF9F5] border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 outline-none">
+                    <button onclick="deleteMember(${m.id})" class="text-slate-300 hover:text-rose-600 px-1 text-xs">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addNewMember() {
+            const input = document.getElementById('newMemberNameInput');
+            const name = input.value.trim();
+            if (name) {
+                members.push({ id: Date.now(), name, paid: 0, penalty: 0 });
+                input.value = '';
+                renderRosterList();
+            }
+        }
+
+        function deleteMember(id) {
+            if (members.length <= 1) {
+                alert("Minimum 1 member required!");
+                return;
+            }
+            members = members.filter(m => m.id !== id);
+            renderRosterList();
+        }
+
+        function saveRosterChanges() {
+            members.forEach(m => {
+                const el = document.getElementById(`rosterMemberInput_${m.id}`);
+                if (el && el.value.trim()) {
+                    m.name = el.value.trim();
+                }
+            });
+            closeAddMemberModal();
+            saveSystemState();
+        }
+
+        // Outing Plans Modal
+        function openPlanModal() {
+            if (currentRole !== 'admin') return;
+            document.getElementById('planModal').classList.remove('hidden');
+        }
+
+        function closePlanModal() {
+            document.getElementById('planModal').classList.add('hidden');
+        }
+
+        function handlePlanSubmit(e) {
+            e.preventDefault();
+            if (currentRole !== 'admin') return;
+
+            const location = document.getElementById('planLocation').value.trim();
+            const category = document.getElementById('planCategory').value;
+            const costPerPerson = parseFloat(document.getElementById('planCost').value);
+            const date = document.getElementById('planDate').value;
+            const proposer = document.getElementById('planProposer').value;
+
+            if (location && costPerPerson > 0 && date && proposer) {
+                plans.unshift({ id: Date.now(), location, category, costPerPerson, date, proposer });
+                closePlanModal();
+                saveSystemState();
+            }
+        }
+
+        function deletePlan(index) {
+            if (currentRole !== 'admin') return;
+            plans.splice(index, 1);
+            saveSystemState();
+        }
+
+        // Poll & Voting Modal / Logic
+        function openPollModal() {
+            if (currentRole !== 'admin') return;
+            document.getElementById('pollModal').classList.remove('hidden');
+        }
+
+        function closePollModal() {
+            document.getElementById('pollModal').classList.add('hidden');
+            document.getElementById('pollTitleInput').value = '';
+        }
+
+        function createPollOption() {
+            if (currentRole !== 'admin') return;
+
+            const title = document.getElementById('pollTitleInput').value.trim();
+            if (title) {
+                polls.unshift({
+                    id: Date.now(),
+                    title: title,
+                    createdAt: Date.now(),
+                    votes: []
+                });
+                closePollModal();
+                saveSystemState();
+            }
+        }
+
+        function castVote(pollIdx) {
+            const select = document.getElementById(`voterSelect_${pollIdx}`);
+            const memberId = parseInt(select.value);
+
+            if (!memberId) {
+                alert("Please select your name to vote!");
+                return;
+            }
+
+            const poll = polls[pollIdx];
+            if (!poll.votes) poll.votes = [];
+
+            if (!poll.votes.includes(memberId)) {
+                poll.votes.push(memberId);
+                saveSystemState();
+            } else {
+                alert("You have already voted on this option!");
+            }
+        }
+
+        function deletePoll(index) {
+            if (currentRole !== 'admin') return;
+            polls.splice(index, 1);
+            saveSystemState();
+        }
+
+        // Admin Trigger: 24h Missed Voting Deadline Penalty Check
+        function runVotingDeadlineCheck() {
+            let totalPenaltiesApplied = 0;
+
+            polls.forEach(poll => {
+                const elapsed = Date.now() - poll.createdAt;
+                const isExpired = elapsed >= (24 * 60 * 60 * 1000);
+
+                if (isExpired) {
+                    members.forEach(member => {
+                        const voted = poll.votes && poll.votes.includes(member.id);
+                        if (!voted) {
+                            member.penalty = (member.penalty || 0) + 10;
+                            totalPenaltiesApplied++;
+                        }
+                    });
+                }
+            });
+
+            if (totalPenaltiesApplied > 0) {
+                alert(`Deadline Check Complete: Added ৳10 penalty fee to members who missed voting within 24h!`);
+                saveSystemState();
+            } else {
+                alert("No expired polls found or all members voted on active polls!");
+            }
+        }
+
+        // Reset App State
+        function resetSystemData() {
+            if (confirm("Reset all group collections, expenses, plans, and voting polls?")) {
+                members = DEFAULT_MEMBERS.map(m => ({ ...m, paid: 0, penalty: 0 }));
+                approvedExpenses = [];
+                plans = DEFAULT_PLANS;
+                polls = DEFAULT_POLLS;
+                pendingQueue = [];
+                currentRole = 'member';
+                saveSystemState();
+            }
+        }
+
+        // Initial Load
+        window.onload = function() {
+            renderApp();
+        };
+    </script>
+</body>
+</html>005565210101233211210001210/HGHHJ
